@@ -83,6 +83,12 @@ public class GroovyTemplate
       this.templateText = templateText;
    }
 
+   public GroovyTemplate(String templateText, GroovyScript script)
+   {
+      this.templateText = templateText;
+      this.script = script;
+   }
+
    public String getId()
    {
       return script.getTemplateId();
@@ -101,6 +107,11 @@ public class GroovyTemplate
    public String getGroovy()
    {
       return script.getGroovyText();
+   }
+
+   public GroovyScript getScript()
+   {
+      return script;
    }
 
    public void render(Writer writer) throws IOException, TemplateRuntimeException

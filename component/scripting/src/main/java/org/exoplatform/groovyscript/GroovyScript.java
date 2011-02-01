@@ -23,7 +23,12 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.exoplatform.commons.utils.OutputStreamPrinter;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Writer;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -43,17 +48,83 @@ public class GroovyScript
    private final String groovyText;
 
    /** . */
-   private final Class<?> scriptClass;
+   private final Class<? extends BaseScript> scriptClass;
 
    /** . */
    private final Map<Integer, TextItem> lineTable;
 
-   public GroovyScript(String templateId, String groovyText, Class<?> scriptClass, Map<Integer, TextItem> lineTable)
+   /** . */
+   private final Map<String, byte[]> byteCodeMap;
+
+   public GroovyScript(InputStream in, ClassLoader cl) throws IOException, ClassNotFoundException {
+
+      ObjectInputStream data = new ObjectInputStream(in);
+
+      //
+      String templateId = data.readUTF();
+      String groovyText = data.readUTF();
+      String scriptClassName = data.readUTF();
+      Map<Integer, TextItem> lineTable = (Map<Integer, TextItem>)data.readObject();
+      final Map<String, byte[]> byteCodeMap = (Map<String, byte[]>)data.readObject();
+
+      //
+      ClassLoader cl2 = new ClassLoader(cl)
+      {
+
+         /** . */
+         private Map<String, Class<?>> cache = new HashMap<String, Class<?>>();
+
+         @Override
+         protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
+         {
+            Class<?> clazz = cache.get(name);
+            if (clazz == null)
+            {
+               byte[] byteCode = byteCodeMap.get(name);
+               if (byteCode != null)
+               {
+                  clazz = defineClass(null, byteCode, 0, byteCode.length);
+                  cache.put(name, clazz);
+               }
+               if (clazz == null)
+               {
+                  clazz = super.loadClass(name, resolve);
+               }
+            }
+            return clazz;
+         }
+      };
+      Class<?> scriptClass = cl2.loadClass(scriptClassName);
+
+      //
+      this.templateId = templateId;
+      this.groovyText = groovyText;
+      this.lineTable = lineTable;
+      this.byteCodeMap = byteCodeMap;
+      this.scriptClass = (Class<BaseScript>)scriptClass;
+   }
+
+   public GroovyScript(
+      String templateId,
+      String groovyText,
+      Class<? extends BaseScript> scriptClass,
+      Map<Integer, TextItem> lineTable,
+      Map<String, byte[]> byteCodeMap)
    {
       this.templateId = templateId;
       this.groovyText = groovyText;
       this.scriptClass = scriptClass;
       this.lineTable = lineTable;
+      this.byteCodeMap = byteCodeMap;
+   }
+
+   public void writeTo(OutputStream out) throws IOException {
+      ObjectOutputStream data = new ObjectOutputStream(out);
+      data.writeUTF(templateId);
+      data.writeUTF(groovyText);
+      data.writeUTF(scriptClass.getName());
+      data.writeObject(lineTable);
+      data.writeObject(byteCodeMap);
    }
 
    public String getTemplateId()
@@ -66,7 +137,7 @@ public class GroovyScript
       return groovyText;
    }
 
-   public Class<?> getScriptClass()
+   public Class<? extends BaseScript> getScriptClass()
    {
       return scriptClass;
    }

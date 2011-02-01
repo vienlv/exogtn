@@ -26,6 +26,9 @@ import org.exoplatform.commons.cache.future.FutureCache;
 import org.exoplatform.commons.cache.future.FutureExoCache;
 import org.exoplatform.commons.cache.future.Loader;
 import org.exoplatform.commons.utils.IOUtil;
+import org.exoplatform.commons.utils.PropertyManager;
+import org.exoplatform.commons.utils.Safe;
+import org.exoplatform.groovyscript.GroovyScript;
 import org.exoplatform.groovyscript.GroovyTemplate;
 import org.exoplatform.groovyscript.GroovyTemplateEngine;
 import org.exoplatform.management.annotations.Impact;
@@ -42,7 +45,12 @@ import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.gatein.common.io.IOTools;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -56,6 +64,40 @@ import java.util.Locale;
 @RESTEndpoint(path = "templateservice")
 public class TemplateService
 {
+
+   /** . */
+   private static final File rootFile;
+
+   /** . */
+   private static boolean use = System.getProperty("template_cache") != null;
+
+   /** . */
+   private static transient long totalTime = 0;
+
+   static
+   {
+
+      String dataDir = PropertyManager.getProperty("gatein.data.dir");
+      File dataFile = new File(dataDir);
+      File _rootFile = null;
+      if (dataFile.exists() && dataFile.isDirectory())
+      {
+         _rootFile = new File(dataFile, "templates");
+         if (!_rootFile.exists())
+         {
+            _rootFile.mkdir();
+         }
+      }
+
+      if (_rootFile != null && _rootFile.exists() && _rootFile.isDirectory())
+      {
+         rootFile = _rootFile;
+      }
+      else
+      {
+         rootFile = null;
+      }
+   }
 
    private GroovyTemplateEngine engine_;
 
@@ -92,8 +134,49 @@ public class TemplateService
          // Julien: it's a bit dangerious here, with respect to the file encoding...
          String text = new String(bytes);
 
-         // Finally do the expensive template creation
-         return engine_.createTemplate(key.getURL(), name, text);
+         //
+         long now = System.currentTimeMillis();
+         GroovyTemplate template;
+         if (use)
+         {
+            File f = new File(rootFile, "" + text.hashCode());
+            if (f.exists())
+            {
+               FileInputStream in = new FileInputStream(f);
+               try
+               {
+                  GroovyScript script = new GroovyScript(in, Thread.currentThread().getContextClassLoader());
+                  template = new GroovyTemplate(text, script);
+               }
+               finally
+               {
+                  Safe.close(in);
+               }
+            }
+            else
+            {
+               // Finally do the expensive template creation
+               template = engine_.createTemplate(key.getURL(), name, text);
+               GroovyScript script = template.getScript();
+               OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+               try
+               {
+                  script.writeTo(out);
+               }
+               finally
+               {
+                  out.close();
+               }
+            }
+         }
+         else
+         {
+            template = engine_.createTemplate(key.getURL(), name, text);
+         }
+         long spent = System.currentTimeMillis() - now;
+         totalTime += spent;
+         System.out.println("Time to compile " + spent + " ms, total time " + totalTime + " ms");
+         return template;
       }
    };
 

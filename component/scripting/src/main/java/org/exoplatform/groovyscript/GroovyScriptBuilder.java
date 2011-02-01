@@ -18,7 +18,6 @@
  */
 package org.exoplatform.groovyscript;
 
-import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyCodeSource;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -36,7 +35,7 @@ import java.util.Map;
  * @author <a href="mailto:julien.viet@exoplatform.com">Julien Viet</a>
  * @version $Revision$
  */
-public class GroovyScriptBuilder 
+public class GroovyScriptBuilder
 {
 
    /** . */
@@ -202,11 +201,11 @@ public class GroovyScriptBuilder
       //
       InputStream in = new ByteArrayInputStream(bytes);
       GroovyCodeSource gcs = new GroovyCodeSource(in, templateName, "/groovy/shell");
-      GroovyClassLoader loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), config);
-      Class<?> scriptClass;
+      ByteCodeCollectorClassLoader loader = new ByteCodeCollectorClassLoader(Thread.currentThread().getContextClassLoader(), config);
+      Class<? extends BaseScript> scriptClass;
       try
       {
-         scriptClass = loader.parseClass(gcs, false);
+         scriptClass = loader.parseClass(gcs, false).asSubclass(BaseScript.class);
       }
       catch (CompilationFailedException e)
       {
@@ -221,7 +220,8 @@ public class GroovyScriptBuilder
          templateId,
          script.toString(),
          scriptClass,
-         Collections.unmodifiableMap(new HashMap<Integer, TextItem>(script.positionTable))
+         Collections.unmodifiableMap(new HashMap<Integer, TextItem>(script.positionTable)),
+         loader.getByteCodeMap()
       );
    }
 
@@ -252,7 +252,7 @@ public class GroovyScriptBuilder
          StringBuilder builder = new StringBuilder();
          builder.append(out.toString());
          builder.append("\n");
-         builder.append("public class Constants\n");
+         builder.append("public class TextConstants\n");
          builder.append("{\n");
          for (TextContant method : textMethods)
          {
@@ -265,7 +265,7 @@ public class GroovyScriptBuilder
       public void appendText(String text)
       {
          TextContant m = new TextContant("s" + methodCount++, text);
-         out.append("out.print(Constants.").append(m.name).append(");\n");
+         out.append("out.print(TextConstants.").append(m.name).append(");\n");
          textMethods.add(m);
          lineNumber++;
       }
