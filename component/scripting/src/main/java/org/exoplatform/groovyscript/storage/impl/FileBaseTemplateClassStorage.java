@@ -24,7 +24,7 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.groovyscript.GroovyScript;
 import org.exoplatform.groovyscript.GroovyTemplate;
 import org.exoplatform.groovyscript.storage.TemplateClassStorage;
-import org.exoplatform.groovyscript.storage.TemplateIOException;
+import org.picocontainer.Startable;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,6 +70,7 @@ public class FileBaseTemplateClassStorage extends TemplateClassStorage
    {
       super(params);
    }
+
 
    @Override
    public GroovyScript load(String hashCode) throws Exception
