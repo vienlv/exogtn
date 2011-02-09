@@ -161,6 +161,12 @@
 
   <component>
     <type>org.exoplatform.groovyscript.text.TemplateService</type>
+    <init-params>
+      <value-param>
+        <name>useTemplateClassStorage</name>
+        <value>true</value>
+      </value-param>
+    </init-params>
   </component>
 
   <component>

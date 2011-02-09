@@ -28,9 +28,12 @@ import org.exoplatform.commons.cache.future.Loader;
 import org.exoplatform.commons.utils.IOUtil;
 import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.commons.utils.Safe;
+import org.exoplatform.container.RootContainer;
+import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.groovyscript.GroovyScript;
 import org.exoplatform.groovyscript.GroovyTemplate;
 import org.exoplatform.groovyscript.GroovyTemplateEngine;
+import org.exoplatform.groovyscript.storage.TemplateClassStorage;
 import org.exoplatform.management.annotations.Impact;
 import org.exoplatform.management.annotations.ImpactType;
 import org.exoplatform.management.annotations.Managed;
@@ -66,44 +69,17 @@ public class TemplateService
 {
 
    /** . */
-   private static final File rootFile;
-
-   /** . */
-   private static boolean use = System.getProperty("template_cache") != null;
-
-   /** . */
    private static transient long totalTime = 0;
-
-   static
-   {
-
-      String dataDir = PropertyManager.getProperty("gatein.data.dir");
-      File dataFile = new File(dataDir);
-      File _rootFile = null;
-      if (dataFile.exists() && dataFile.isDirectory())
-      {
-         _rootFile = new File(dataFile, "templates");
-         if (!_rootFile.exists())
-         {
-            _rootFile.mkdir();
-         }
-      }
-
-      if (_rootFile != null && _rootFile.exists() && _rootFile.isDirectory())
-      {
-         rootFile = _rootFile;
-      }
-      else
-      {
-         rootFile = null;
-      }
-   }
 
    private GroovyTemplateEngine engine_;
 
    private ExoCache<ResourceKey, GroovyTemplate> templatesCache_;
 
    private TemplateStatisticService statisticService;
+
+   private final TemplateClassStorage templateClassStorageService;
+
+   private boolean useTemplateClassStorage;
 
    private boolean cacheTemplate_ = true;
 
@@ -137,37 +113,24 @@ public class TemplateService
          //
          long now = System.currentTimeMillis();
          GroovyTemplate template;
-         if (use)
+         if (useTemplateClassStorage)
          {
-            File f = new File(rootFile, "" + text.hashCode());
-            if (f.exists())
+            String hashCode = "" + text.hashCode();
+
+            GroovyScript script = templateClassStorageService.load(hashCode);
+
+            if(script != null)
             {
-               FileInputStream in = new FileInputStream(f);
-               try
-               {
-                  GroovyScript script = new GroovyScript(in, Thread.currentThread().getContextClassLoader());
-                  template = new GroovyTemplate(text, script);
-               }
-               finally
-               {
-                  Safe.close(in);
-               }
+               template = new GroovyTemplate(text, script);
             }
             else
             {
-               // Finally do the expensive template creation
                template = engine_.createTemplate(key.getURL(), name, text);
-               GroovyScript script = template.getScript();
-               OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
-               try
-               {
-                  script.writeTo(out);
-               }
-               finally
-               {
-                  out.close();
-               }
+               script = template.getScript();
+
+               templateClassStorageService.store(script, hashCode);
             }
+
          }
          else
          {
@@ -175,19 +138,21 @@ public class TemplateService
          }
          long spent = System.currentTimeMillis() - now;
          totalTime += spent;
-         System.out.println("Time to compile " + spent + " ms, total time " + totalTime + " ms");
+         System.out.println("Time to compile " + key.getURL() + " : " + spent + " ms, total time " + totalTime + " ms");
          return template;
       }
    };
 
    private FutureCache<ResourceKey, GroovyTemplate, ResourceResolver> futureCache;
 
-   public TemplateService(TemplateStatisticService statisticService, CacheService cservice) throws Exception
+   public TemplateService(TemplateStatisticService statisticService, CacheService cservice, TemplateClassStorage clStorage, InitParams params) throws Exception
    {
       this.engine_ = new GroovyTemplateEngine();
       this.statisticService = statisticService;
+      this.templateClassStorageService = clStorage;
       this.templatesCache_ = cservice.getCacheInstance(TemplateService.class.getSimpleName());
       this.futureCache = new FutureExoCache<ResourceKey, GroovyTemplate, ResourceResolver>(loader, templatesCache_);
+      this.useTemplateClassStorage = "true".equals(params.getValueParam("useTemplateClassStorage").getValue());
    }
 
    public void merge(String name, BindingContext context) throws Exception
