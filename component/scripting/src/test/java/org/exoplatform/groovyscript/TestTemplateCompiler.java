@@ -18,9 +18,13 @@
  */
 package org.exoplatform.groovyscript;
 
+import org.apache.pdfbox.examples.pdmodel.HelloWorld;
 import org.exoplatform.component.test.AbstractGateInTest;
-
+import java.io.CharArrayWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.util.HashMap;
+import java.util.Locale;
 
 /**
  * @author <a href="mailto:julien.viet@exoplatform.com">Julien Viet</a>
@@ -43,4 +47,21 @@ public class TestTemplateCompiler extends AbstractGateInTest
    }
 
    //TODO: Test template files containing closure with dynamic free variables
+
+   public void testCompileHelloWorld() throws Exception
+   {
+       StringBuilder builder = new StringBuilder();
+       builder.append("<% def message = \"Hello World!\" ;");
+       builder.append("print message;");
+       builder.append("%>");
+
+       GroovyScript script = TemplateUtil.generateScriptFromRawContent("test", "test", builder.toString());
+
+       CharArrayWriter arrayWriter = new CharArrayWriter(1024);
+
+       script.render(new HashMap(), arrayWriter, Locale.US);
+
+       assertEquals("Hello World!", arrayWriter.toString());
+   }
+
 }

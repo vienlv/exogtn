@@ -110,6 +110,7 @@ public class FileBaseTemplateClassStorage extends TemplateClassStorage
       OutputStream out = new BufferedOutputStream(new FileOutputStream(f));
       try{
          script.writeTo(out);
+         out.flush();
       }
       finally
       {

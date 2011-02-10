@@ -28,6 +28,7 @@ import org.exoplatform.container.RootContainer;
 import org.exoplatform.groovyscript.storage.TemplateClassStorage;
 import java.io.File;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author <a href="hoang281283@gmail.com">Minh Hoang TO</a>
@@ -60,10 +61,19 @@ public class TestTemplateClassStorage extends AbstractKernelTest
 
    private TemplateClassStorage storageService;
 
+   private GroovyScript sharedTestedScript;
+
    public TestTemplateClassStorage() throws Exception
    {
       super();
 
+      try{
+         sharedTestedScript = TemplateUtil.generateScriptFromFile("UIPortalApplication.gtmpl");
+      }
+      catch(Exception ex)
+      {
+         sharedTestedScript = null;
+      }
    }
 
    public void setUp() throws Exception
@@ -81,12 +91,14 @@ public class TestTemplateClassStorage extends AbstractKernelTest
    public void testInitService()
    {
       assertNotNull(storageService);
+      assertNotNull(sharedTestedScript);
+      assertEquals("UIPortalApplication.gtmpl", sharedTestedScript.getTemplateId());
    }
 
    public void testCompile()
    {
       try{
-         GroovyScript script = generateFromFile("UIPortalApplication.gtmpl");
+         GroovyScript script = TemplateUtil.generateScriptFromFile("UIPortalApplication.gtmpl");
 
          assertNotNull(script);
          assertEquals("UIPortalApplication.gtmpl", script.getTemplateId());
@@ -100,7 +112,17 @@ public class TestTemplateClassStorage extends AbstractKernelTest
 
    public void testSerializeWrite()
    {
+      try{
+         storageService.store(sharedTestedScript, "UIPortalApplication");
+         GroovyScript loadScript = storageService.load("UIPortalApplication");
+         assertNotNull(loadScript);
 
+         assertEquals(loadScript.getGroovyText(), sharedTestedScript.getGroovyText());
+      }
+      catch(Exception ex)
+      {
+         fail();
+      }
    }
 
    public void testSerializeRead ()
@@ -110,6 +132,53 @@ public class TestTemplateClassStorage extends AbstractKernelTest
 
    public void testConcurrentWrite()
    {
+      final CountDownLatch latch = new CountDownLatch(1);
+
+      Thread[] threads = new Thread[20];
+
+      for(int i = 0 ; i < 20; i++)
+      {
+         Runnable runnable = new Runnable()
+         {
+            public void run()
+            {
+               try{
+                  latch.await();
+                  storageService.store(sharedTestedScript, "UIPortalApplication");
+               }
+               catch(Exception ex)
+               {
+                  ex.printStackTrace();
+               }
+            }
+         };
+
+         threads[i] = new Thread(runnable);
+         threads[i].start();
+      }
+
+      latch.countDown();
+
+      try{
+         for(int i =0; i< 20; i++)
+         {
+            threads[i].join();
+         }
+         }
+      catch(InterruptedException ex)
+      {
+         ex.printStackTrace();
+      }
+
+      try{
+         GroovyScript scriptReadFromMain = storageService.load("UIPortalApplication");
+         assertEquals(sharedTestedScript.getScriptClass().getName(), scriptReadFromMain.getScriptClass().getName());
+         assertEquals(sharedTestedScript.getGroovyText(), scriptReadFromMain.getGroovyText());
+      }
+      catch(Exception ex)
+      {
+          //ex.printStackTrace();
+      }
 
    }
 
@@ -124,27 +193,50 @@ public class TestTemplateClassStorage extends AbstractKernelTest
 
    }
 
+   /** Expect to get dirty read for the moment. Compare to testConcurrentWrite, there is no calls
+    * to join()
+    */
    public void testDirtyRead()
    {
+      final CountDownLatch latch = new CountDownLatch(1);
+
+            Thread[] threads = new Thread[20];
+
+            for(int i = 0 ; i < 20; i++)
+            {
+               Runnable runnable = new Runnable()
+               {
+                  public void run()
+                  {
+                     try{
+                        latch.await();
+                        storageService.store(sharedTestedScript, "UIPortalApplication");
+                     }
+                     catch(Exception ex)
+                     {
+                        ex.printStackTrace();
+                     }
+                  }
+               };
+
+               threads[i] = new Thread(runnable);
+               threads[i].start();
+            }
+
+            latch.countDown();
+
+            //Read from main thread, there is no calls to join() on the above 20 threads, we expect failure for now
+            try{
+               GroovyScript scriptReadFromMain = storageService.load("UIPortalApplication");
+               fail("EXPECT A FAILURE");
+               assertEquals(sharedTestedScript.getScriptClass().getName(), scriptReadFromMain.getScriptClass().getName());
+               assertEquals(sharedTestedScript.getGroovyText(), scriptReadFromMain.getGroovyText());
+            }
+            catch(Exception ex)
+            {
+                ex.printStackTrace();
+            }
 
    }
-
-
-   private GroovyScript generateFromRawContent(String templateId, String templateName, String templateContent) throws Exception
-   {
-      GroovyScriptBuilder scriptBuilder = new GroovyScriptBuilder(templateId, templateName, templateContent);
-
-      return scriptBuilder.build();
-   }
-
-   private GroovyScript generateFromFile(String relPath) throws Exception
-   {
-      URL url = Thread.currentThread().getContextClassLoader().getResource(relPath);
-      File f = new File(url.toURI());
-      String templateContent = IOUtil.getFileContentAsString(f);
-
-      return generateFromRawContent(f.getName(), f.getName(), templateContent);
-   }
-
 
 }
