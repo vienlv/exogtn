@@ -41,4 +41,6 @@ public class TestTemplateCompiler extends AbstractGateInTest
 //      assertEquals("a", compiler.compile("<%a%>"));
 //      assertEquals("a\nb", compiler.compile("<%a\nb%>"));
    }
+
+   //TODO: Test template files containing closure with dynamic free variables
 }

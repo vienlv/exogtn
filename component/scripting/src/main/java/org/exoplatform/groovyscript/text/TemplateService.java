@@ -136,9 +136,6 @@ public class TemplateService
          {
             template = engine_.createTemplate(key.getURL(), name, text);
          }
-         long spent = System.currentTimeMillis() - now;
-         totalTime += spent;
-         System.out.println("Time to compile " + key.getURL() + " : " + spent + " ms, total time " + totalTime + " ms");
          return template;
       }
    };

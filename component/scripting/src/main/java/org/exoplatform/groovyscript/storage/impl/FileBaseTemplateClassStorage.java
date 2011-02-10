@@ -24,6 +24,11 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.groovyscript.GroovyScript;
 import org.exoplatform.groovyscript.GroovyTemplate;
 import org.exoplatform.groovyscript.storage.TemplateClassStorage;
+import org.exoplatform.management.annotations.Impact;
+import org.exoplatform.management.annotations.Managed;
+import org.exoplatform.management.annotations.ManagedDescription;
+import org.exoplatform.management.jmx.annotations.NameTemplate;
+import org.exoplatform.management.jmx.annotations.Property;
 import org.picocontainer.Startable;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -35,6 +40,9 @@ import java.io.OutputStream;
  * @author <a href="hoang281283@gmail.com">Minh Hoang TO</a>
  * @date 2/7/11
  */
+@Managed
+@NameTemplate({@Property(key = "view", value = "rootContainer")})
+@ManagedDescription("FileBaseTemplateClassStorage")
 public class FileBaseTemplateClassStorage extends TemplateClassStorage
 {
 
@@ -87,6 +95,7 @@ public class FileBaseTemplateClassStorage extends TemplateClassStorage
          finally
          {
             Safe.close(in);
+            increaseOneRead();
          }
       }
 
@@ -105,6 +114,29 @@ public class FileBaseTemplateClassStorage extends TemplateClassStorage
       finally
       {
          Safe.close(out);
+         increaseOneWrite();
       }
+      increaseOneSuccessfulWrite();
+   }
+
+   @Managed
+   @ManagedDescription("Get current number of read operations")
+   public long getReadCount()
+   {
+      return getReadCountNumber();
+   }
+
+   @Managed
+   @ManagedDescription("Get current number of write operations")
+   public long getWriteCount()
+   {
+      return getWriteCountNumber();
+   }
+
+   @Managed
+   @ManagedDescription("Get current number of successful write operations")
+   public long getSavedCount()
+   {
+      return getSavedCountNumber();
    }
 }
