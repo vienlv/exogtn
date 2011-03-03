@@ -315,7 +315,7 @@ public class UIPortalForm extends UIFormTabPane
             {
                PortalConfig portalConfig = (PortalConfig)PortalDataMapper.buildModelObject(uiPortal);
                dataService.save(portalConfig);
-               prContext.setAttribute(UserPortalConfig.class, service.getUserPortalConfig(uiForm.getPortalOwner(), prContext.getRemoteUser()));
+               prContext.setAttribute(UserPortalConfig.class, service.getUserPortalConfig(uiForm.getPortalOwner(), prContext.getRemoteUser(), prContext.getBundleResolver()));
                uiPortalApp.reloadSkinPortal(prContext);
             }
             else
