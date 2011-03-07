@@ -21,9 +21,10 @@ package org.exoplatform.portal.webui.page;
 
 import org.exoplatform.portal.config.UserPortalConfigService;
 import org.exoplatform.portal.config.model.Page;
-import org.exoplatform.portal.config.model.PageNavigation;
 import org.exoplatform.portal.config.model.PageNode;
 import org.exoplatform.portal.config.model.PortalConfig;
+import org.exoplatform.portal.mop.user.UserNavigation;
+import org.exoplatform.portal.mop.user.UserNode;
 import org.exoplatform.portal.webui.navigation.UIPageNodeSelector;
 import org.exoplatform.portal.webui.portal.UIPortal;
 import org.exoplatform.portal.webui.util.Util;
@@ -38,8 +39,8 @@ import org.exoplatform.webui.core.UITree;
 import org.exoplatform.webui.core.UIWizard;
 import org.exoplatform.webui.core.lifecycle.UIFormLifecycle;
 import org.exoplatform.webui.event.Event;
-import org.exoplatform.webui.event.EventListener;
 import org.exoplatform.webui.event.Event.Phase;
+import org.exoplatform.webui.event.EventListener;
 import org.exoplatform.webui.form.UIForm;
 import org.exoplatform.webui.form.UIFormCheckBoxInput;
 import org.exoplatform.webui.form.UIFormDateTimeInput;
@@ -48,6 +49,7 @@ import org.exoplatform.webui.form.validator.DateTimeValidator;
 import org.exoplatform.webui.form.validator.IdentifierValidator;
 import org.exoplatform.webui.form.validator.MandatoryValidator;
 import org.exoplatform.webui.form.validator.StringLengthValidator;
+import org.gatein.common.FixMe;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -132,7 +134,9 @@ public class UIWizardPageSetInfo extends UIForm
    {
       if (isEditMode)
       {
-         PageNode pageNode = getSelectedPageNode();
+         UserNode userNode = getSelectedPageNode();
+         PageNode pageNode = PageNode.toPageNode(userNode);
+         
          PageNode clonedNode = (pageNode != null) ? pageNode.clone() : null;
          invokeSetBindingBean(clonedNode);
          if (clonedNode.getLabel() == null || clonedNode.getLabel().trim().length() == 0)
@@ -150,15 +154,15 @@ public class UIWizardPageSetInfo extends UIForm
       }
 
       UIPageNodeSelector uiNodeSelector = getChild(UIPageNodeSelector.class);
-      PageNode selectedNode = uiNodeSelector.getSelectedPageNode();
-      PageNavigation nav = uiNodeSelector.getSelectedNavigation();
-      if(nav.getOwnerType().equals(PortalConfig.USER_TYPE))
+      UserNode selectedNode = uiNodeSelector.getSelectedPageNode();
+      UserNavigation nav = uiNodeSelector.getNavigation();
+      if(nav.getKey().getTypeName().equals(PortalConfig.USER_TYPE))
          pageNode.setUri(pageNode.getName());
       else
       {
          if (selectedNode != null)
          {
-            pageNode.setUri(selectedNode.getUri() + "/" + pageNode.getName());
+            pageNode.setUri(selectedNode.getURI() + "/" + pageNode.getName());
          }
          else
             pageNode.setUri(pageNode.getName());
@@ -180,36 +184,37 @@ public class UIWizardPageSetInfo extends UIForm
       getUIFormDateTimeInput(END_PUBLICATION_DATE).setRendered(show);
    }
 
-   public void setPageNode(PageNode pageNode) throws Exception
+   public void setPageNode(UserNode pageNode) throws Exception
    {
-      if (pageNode.getName() != null)
-         getUIStringInput(PAGE_NAME).setValue(pageNode.getName());
-      if (pageNode.getLabel() != null)
-         getUIStringInput(PAGE_DISPLAY_NAME).setValue(pageNode.getLabel());
-      getUIFormCheckBoxInput(VISIBLE).setChecked(pageNode.isVisible());
-      setShowPublicationDate(pageNode.isShowPublicationDate());
-      Calendar cal = Calendar.getInstance();
-      if (pageNode.getStartPublicationDate() != null)
-      {
-         cal.setTime(pageNode.getStartPublicationDate());
-         getUIFormDateTimeInput(START_PUBLICATION_DATE).setCalendar(cal);
-      }
-      else
-         getUIFormDateTimeInput(START_PUBLICATION_DATE).setValue(null);
-      if (pageNode.getEndPublicationDate() != null)
-      {
-         cal.setTime(pageNode.getEndPublicationDate());
-         getUIFormDateTimeInput(END_PUBLICATION_DATE).setCalendar(cal);
-      }
-      else
-         getUIFormDateTimeInput(END_PUBLICATION_DATE).setValue(null);
+      throw new FixMe("Need to be done after new API supporting save operation");
+//      if (pageNode.getName() != null)
+//         getUIStringInput(PAGE_NAME).setValue(pageNode.getName());
+//      if (pageNode.getLabel() != null)
+//         getUIStringInput(PAGE_DISPLAY_NAME).setValue(pageNode.getLabel());
+//      getUIFormCheckBoxInput(VISIBLE).setChecked(pageNode.isVisible());
+//      setShowPublicationDate(pageNode.isShowPublicationDate());
+//      Calendar cal = Calendar.getInstance();
+//      if (pageNode.getStartPublicationDate() != null)
+//      {
+//         cal.setTime(pageNode.getStartPublicationDate());
+//         getUIFormDateTimeInput(START_PUBLICATION_DATE).setCalendar(cal);
+//      }
+//      else
+//         getUIFormDateTimeInput(START_PUBLICATION_DATE).setValue(null);
+//      if (pageNode.getEndPublicationDate() != null)
+//      {
+//         cal.setTime(pageNode.getEndPublicationDate());
+//         getUIFormDateTimeInput(END_PUBLICATION_DATE).setCalendar(cal);
+//      }
+//      else
+//         getUIFormDateTimeInput(END_PUBLICATION_DATE).setValue(null);
    }
 
-   public PageNode getSelectedPageNode()
+   public UserNode getSelectedPageNode()
    {
       UIPageNodeSelector uiPageNodeSelector = getChild(UIPageNodeSelector.class);
-      PageNavigation nav = uiPageNodeSelector.getSelectedNavigation();
-      if(nav.getOwnerType().equals(PortalConfig.USER_TYPE))
+      UserNavigation nav = uiPageNodeSelector.getNavigation();
+      if(nav.getKey().getTypeName().equals(PortalConfig.USER_TYPE))
          return null;
       return uiPageNodeSelector.getSelectedPageNode();
    }
@@ -252,7 +257,7 @@ public class UIWizardPageSetInfo extends UIForm
 
          if (tree.getParentSelected() == null && (uri == null || uri.length() < 1))
          {
-            uiPageNodeSelector.selectNavigation(uiPageNodeSelector.getSelectedNavigation());
+            uiPageNodeSelector.selectNavigation(uiPageNodeSelector.getNavigation());
          }
          else
          {
@@ -267,14 +272,14 @@ public class UIWizardPageSetInfo extends UIForm
          {
             return;
          }
-         PageNode pageNode = uiPageNodeSelector.getSelectedPageNode();
+         UserNode pageNode = uiPageNodeSelector.getSelectedPageNode();
 
          if (pageNode == null && uiForm.isFirstTime())
          {
             uiForm.setShowPublicationDate(false);
             uiForm.setFirstTime(false);
             UIPortal uiPortal = Util.getUIPortal();
-            uiPageNodeSelector.selectNavigation(uiPortal.getNavigation());
+            uiPageNodeSelector.selectNavigation(uiPortal.getUserNavigation());
             if (uiPortal.getSelectedNode() != null)
             {
                uiPageNodeSelector.selectPageNodeByUri(uiPortal.getSelectedNode().getUri());
@@ -290,8 +295,8 @@ public class UIWizardPageSetInfo extends UIForm
          UserPortalConfigService configService = uiWizard.getApplicationComponent(UserPortalConfigService.class);
          String accessUser = event.getRequestContext().getRemoteUser();
          Page page = null;
-         if (pageNode.getPageReference() != null)
-            page = configService.getPage(pageNode.getPageReference(), accessUser);
+         if (pageNode.getPageRef() != null)
+            page = configService.getPage(pageNode.getPageRef(), accessUser);
          if (page == null)
          {
             uiPortalApp.addMessage(new ApplicationMessage("UIWizardPageSetInfo.msg.null", null));
