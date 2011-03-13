@@ -182,7 +182,12 @@ public class UIPageNodeForm extends UIFormTabPane
 
    public void invokeSetBindingBean(Object bean) throws Exception
    {
+      UIFormStringInput nameTextBox = getUIStringInput("name");
+      //this help to ignore name textbox
+      nameTextBox.setEditable(false);
       super.invokeSetBindingBean(bean);
+      nameTextBox.setEditable(true);
+      
       TreeNodeData node = (TreeNodeData) bean;
 
       node.setVisibility(getUIFormCheckBoxInput(VISIBLE).isChecked() ? Visibility.DISPLAYED : Visibility.HIDDEN);      
@@ -201,6 +206,17 @@ public class UIPageNodeForm extends UIFormTabPane
          date = (cal != null) ? cal.getTime() : null;
          node.setEndPublicationTime(date == null ? -1 : date.getTime());
       }
+
+      UIPageSelector2 pageSelector = getChild(UIPageSelector2.class);
+      if (pageSelector.getPage() == null)
+         node.setPageRef(null);
+      UIFormInputIconSelector uiIconSelector = getChild(UIFormInputIconSelector.class);
+      if (uiIconSelector.getSelectedIcon().equals("Default"))
+         node.setIcon(null);
+      else
+         node.setIcon(uiIconSelector.getSelectedIcon());
+      if (node.getLabel() == null)
+         node.setLabel(node.getName());
    }
 
    public void setShowCheckPublicationDate(boolean show)
@@ -321,18 +337,8 @@ public class UIPageNodeForm extends UIFormTabPane
          {
             pageNode = selectedParent.addChild(nodeName);
          }
-         
+
          uiPageNodeForm.invokeSetBindingBean(pageNode);
-         UIPageSelector2 pageSelector = uiPageNodeForm.getChild(UIPageSelector2.class);
-         if (pageSelector.getPage() == null)
-            pageNode.setPageRef(null);
-         UIFormInputIconSelector uiIconSelector = uiPageNodeForm.getChild(UIFormInputIconSelector.class);
-         if (uiIconSelector.getSelectedIcon().equals("Default"))
-            pageNode.setIcon(null);
-         else
-            pageNode.setIcon(uiIconSelector.getSelectedIcon());
-         if (pageNode.getLabel() == null)
-            pageNode.setLabel(pageNode.getName());
 
          uiPageNodeForm.createEvent("Back", Phase.DECODE, ctx).broadcast();
       }
