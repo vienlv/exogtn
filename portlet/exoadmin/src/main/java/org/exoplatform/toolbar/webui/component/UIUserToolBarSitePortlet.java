@@ -148,7 +148,7 @@ public class UIUserToolBarSitePortlet extends UIPortletApplication
       if (navPath != null)
       {         
          UserNode userNode = navPath.getTarget();
-         userNode = userPortal.getNode(userNode, TOOLBAR_SITE_SCOPE);
+         userPortal.updateNode(userNode, TOOLBAR_SITE_SCOPE, null);
          userNode.filter(TOOLBAR_SITE_FILTER);
          childs = userNode.getChildren();         
       }
