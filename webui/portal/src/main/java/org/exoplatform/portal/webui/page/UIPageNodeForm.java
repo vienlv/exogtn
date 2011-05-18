@@ -334,10 +334,11 @@ public class UIPageNodeForm extends UIFormTabPane
             return;
          }
 
+         //Add node that need to be rebased to context
          if (pageNode == null)
          {
             pageNode = selectedParent.addChild(nodeName);
-         }
+         } 
 
          uiPageNodeForm.invokeSetBindingBean(pageNode);
 
