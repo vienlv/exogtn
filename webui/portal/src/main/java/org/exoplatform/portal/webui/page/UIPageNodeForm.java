@@ -184,22 +184,22 @@ public class UIPageNodeForm extends UIFormTabPane
       super.invokeSetBindingBean(bean);
       nameTextBox.setEditable(true);
       
-      TreeNodeData node = (TreeNodeData) bean;
-
-      Visibility visibility;
-      if (getUIFormCheckBoxInput(VISIBLE).isChecked())
-      {
-         UIFormCheckBoxInput showPubDate = getUIFormCheckBoxInput(SHOW_PUBLICATION_DATE);
-         visibility = showPubDate.isChecked() ?  Visibility.TEMPORAL : Visibility.DISPLAYED;  
-      }
-      else
-      {
-         visibility = Visibility.HIDDEN;
-      }
-      node.setVisibility(visibility);
+      TreeNodeData node = (TreeNodeData) bean;      
 
       if (node.getVisibility() != Visibility.SYSTEM)
       {
+         Visibility visibility;
+         if (getUIFormCheckBoxInput(VISIBLE).isChecked())
+         {
+            UIFormCheckBoxInput showPubDate = getUIFormCheckBoxInput(SHOW_PUBLICATION_DATE);
+            visibility = showPubDate.isChecked() ?  Visibility.TEMPORAL : Visibility.DISPLAYED;  
+         }
+         else
+         {
+            visibility = Visibility.HIDDEN;
+         }
+         node.setVisibility(visibility);
+         
          Calendar cal = getUIFormDateTimeInput(START_PUBLICATION_DATE).getCalendar();
          Date date = (cal != null) ? cal.getTime() : null;
          node.setStartPublicationTime(date == null ? -1 : date.getTime());
