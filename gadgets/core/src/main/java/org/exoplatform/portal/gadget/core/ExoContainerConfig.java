@@ -25,19 +25,23 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import sun.misc.BASE64Encoder;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.shindig.auth.BlobCrypterSecurityTokenDecoder;
 import org.apache.shindig.config.ContainerConfigException;
 import org.apache.shindig.config.JsonContainerConfig;
 import org.apache.shindig.expressions.Expressions;
+import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.commons.utils.Safe;
-import org.exoplatform.container.monitor.jvm.J2EEServerInfo;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
@@ -77,42 +81,19 @@ public class
    {
       super(s, expressions);
 
-      //
-      J2EEServerInfo info = new J2EEServerInfo();
-
-      //
-      String confPath = info.getExoConfigurationDirectory();
-
-      File keyFile = null;
-      if (confPath != null)
+      String keyPath = PropertyManager.getProperty("gatein.gadgets.keypath");
+      File keyFile = null;      
+      if (keyPath != null) 
       {
-         File confDir = new File(confPath);
-         if (!confDir.exists())
-         {
-            log.debug("Exo conf directory (" + confPath + ") does not exist");
-         }
-         else
-         {
-            if (!confDir.isDirectory())
-            {
-               log.debug("Exo conf directory (" + confPath + ") is not a directory");
-            }
-            else
-            {
-               keyFile = new File(confDir, "gadgets/key.txt");
-            }
-         }
+         keyFile = new File(keyPath);
       }
-
-      if (keyFile == null)
+      else
       {
          keyFile = new File("key.txt");
       }
 
-      String keyPath = keyFile.getAbsolutePath();
-
       if (!keyFile.exists())
-      {
+      {         
          log.debug("No key file found at path " + keyPath + " generating a new key and saving it");
          File fic = keyFile.getAbsoluteFile();
          File parentFolder = fic.getParentFile();

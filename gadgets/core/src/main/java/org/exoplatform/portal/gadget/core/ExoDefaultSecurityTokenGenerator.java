@@ -27,7 +27,7 @@ import org.apache.shindig.common.crypto.BasicBlobCrypter;
 import org.apache.shindig.common.crypto.BlobCrypter;
 import org.apache.shindig.common.crypto.BlobCrypterException;
 import org.apache.shindig.common.util.TimeSource;
-import org.exoplatform.container.monitor.jvm.J2EEServerInfo;
+import org.exoplatform.commons.utils.PropertyManager;
 import org.exoplatform.web.application.RequestContext;
 
 public class ExoDefaultSecurityTokenGenerator implements SecurityTokenGenerator
@@ -134,21 +134,17 @@ public class ExoDefaultSecurityTokenGenerator implements SecurityTokenGenerator
     * Method returns a path to the file containing the encryption key
     */
    private String getKeyFilePath(){
-       J2EEServerInfo info = new J2EEServerInfo();
-       String confPath = info.getExoConfigurationDirectory();
-       File keyFile = null;
-       
-       if (confPath != null) {
-          File confDir = new File(confPath);
-          if (confDir != null && confDir.exists() && confDir.isDirectory()) {
-             keyFile = new File(confDir, "gadgets/key.txt");
-          }
-       }
-
-       if (keyFile == null) {
+      String keyPath = PropertyManager.getProperty("gatein.gadgets.keypath");
+      File keyFile = null;      
+      if (keyPath != null)
+      {
+         keyFile = new File(keyPath); 
+      }
+      else
+      {
           keyFile = new File("key.txt");
-       }
+      }
        
-       return keyFile.getAbsolutePath();
+      return keyFile.getAbsolutePath();
    }
 }
